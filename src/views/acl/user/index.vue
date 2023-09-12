@@ -60,7 +60,9 @@
         show-overflow-tooltip
       >
         <template #="{ row }">
-          <el-button type="primary" size="small">分配角色</el-button>
+          <el-button type="primary" size="small" @click="setRole(row)"
+            >分配角色</el-button
+          >
           <el-button
             type="primary"
             icon="Edit"
@@ -129,6 +131,47 @@
       <el-button type="primary" @click="save">确定</el-button>
     </template>
   </el-drawer>
+
+  <el-drawer v-model="drawer2" :show-close="false">
+    <template #header="{ close, titleId, titleClass }">
+      <h4 :id="titleId" :class="titleClass">分配用户角色</h4>
+      <el-button type="danger" @click="close">
+        <el-icon class="el-icon--left"><CircleCloseFilled /></el-icon>
+        Close
+      </el-button>
+    </template>
+    <template #default>
+      <el-form>
+        <el-form-item label="用户姓名">
+          <el-input
+            v-model="userParams.username"
+            :disabled="true"
+            placeholder="用户名"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="职位列表">
+          <el-checkbox
+            v-model="checkAll"
+            :indeterminate="isIndeterminate"
+            @change="handleCheckAllChange"
+            >全选</el-checkbox
+          >
+          <el-checkbox-group
+            v-model="checkedRoles"
+            @change="handleCheckedRolesChange"
+          >
+            <el-checkbox v-for="item in RoleList" :key="item" :label="item">{{
+              item
+            }}</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+      </el-form>
+    </template>
+    <template #footer>
+      <el-button @click="closeDrawer2">取消</el-button>
+      <el-button type="primary">确定</el-button>
+    </template>
+  </el-drawer>
 </template>
 
 <script setup lang="ts">
@@ -148,6 +191,27 @@ let total = ref<number>(0);
 let userList = ref<UserData[]>([]);
 // 抽屉开关
 const drawer = ref(false);
+// 分配角色抽屉开关
+const drawer2 = ref(false);
+// 选中的职位列表
+const checkedRoles = ref(["前端", "后端", "测试"]);
+// 职位列表
+const RoleList = [
+  "超级管理员",
+  "前台",
+  "运行",
+  "产品",
+  "前端",
+  "后端",
+  "测试",
+  "财务",
+  "运维",
+  "销售",
+  "程序鼓励师",
+];
+
+// 设置不确定状态，仅负责样式控制
+const isIndeterminate = ref(true);
 
 // 新增和修改用户信息数据
 let userParams = reactive<UserData>({
@@ -184,6 +248,9 @@ const updateUser = (row: UserData) => {
     formRef.value.clearValidate("name");
   });
 };
+/**
+ * 关闭抽屉1
+ */
 const colseDrawer = () => {
   drawer.value = false;
 };
@@ -289,6 +356,44 @@ const rules = {
       validator: validatorPassword,
     },
   ],
+};
+
+/**
+ * 打开分配用户抽屉
+ */
+const setRole = (row: UserData) => {
+  console.log(row);
+  drawer2.value = true;
+  Object.assign(userParams, row);
+};
+
+/**
+ * 复选框全部选中
+ */
+const checkAll = ref<boolean>(false);
+
+/**
+ * 全选复选框的change事件
+ */
+const handleCheckAllChange = (val: boolean) => {
+  checkedRoles.value = val ? RoleList : [];
+  isIndeterminate.value = false;
+};
+
+/**
+ * 复选框组全选判断
+ */
+const handleCheckedRolesChange = (value: string[]) => {
+  const checkedCount = value.length;
+  checkAll.value = checkedCount === RoleList.length;
+  isIndeterminate.value = checkedCount > 0 && checkedCount < RoleList.length;
+};
+
+/**
+ * 关闭复选框抽屉
+ */
+const closeDrawer2 = () => {
+  drawer2.value = false;
 };
 </script>
 
