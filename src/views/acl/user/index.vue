@@ -157,11 +157,11 @@
             >全选</el-checkbox
           >
           <el-checkbox-group
-            v-model="checkedRoles"
+            v-model="userRole"
             @change="handleCheckedRolesChange"
           >
-            <el-checkbox v-for="item in RoleList" :key="item" :label="item">{{
-              item
+            <el-checkbox v-for="item in allRole" :key="item" :label="item">{{
+              item.roleName
             }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
@@ -169,15 +169,26 @@
     </template>
     <template #footer>
       <el-button @click="closeDrawer2">取消</el-button>
-      <el-button type="primary">确定</el-button>
+      <el-button type="primary" @click="confirmClick">确定</el-button>
     </template>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, reactive, nextTick } from "vue";
-import { reqAllUser, reqAddOrUpdateUser } from "@/api/acl/user/index";
-import { ALL_USER_Response_Data, UserData } from "@/api/acl/user/type";
+import {
+  reqAllUser,
+  reqAddOrUpdateUser,
+  reqAllRole,
+  reqSetRole,
+} from "@/api/acl/user/index";
+import {
+  ALL_USER_Response_Data,
+  UserData,
+  AllRoleResponse,
+  AllRole,
+  SetRoleData,
+} from "@/api/acl/user/type";
 import { ElMessage } from "element-plus";
 // 表单el-form对象
 const formRef = ref();
@@ -193,22 +204,10 @@ let userList = ref<UserData[]>([]);
 const drawer = ref(false);
 // 分配角色抽屉开关
 const drawer2 = ref(false);
-// 选中的职位列表
-const checkedRoles = ref(["前端", "后端", "测试"]);
-// 职位列表
-const RoleList = [
-  "超级管理员",
-  "前台",
-  "运行",
-  "产品",
-  "前端",
-  "后端",
-  "测试",
-  "财务",
-  "运维",
-  "销售",
-  "程序鼓励师",
-];
+// 全部职位
+const allRole = ref<AllRole>([]);
+// 已有职位
+const userRole = ref<AllRole>([]);
 
 // 设置不确定状态，仅负责样式控制
 const isIndeterminate = ref(true);
@@ -361,10 +360,15 @@ const rules = {
 /**
  * 打开分配用户抽屉
  */
-const setRole = (row: UserData) => {
-  console.log(row);
-  drawer2.value = true;
+const setRole = async (row: UserData) => {
   Object.assign(userParams, row);
+  const result: AllRoleResponse = await reqAllRole(userParams.id as number);
+  if (result.code === 200) {
+    allRole.value = result.data.allRolesList;
+    userRole.value = result.data.assignRoles;
+    console.log(allRole.value, userRole.value);
+    drawer2.value = true;
+  }
 };
 
 /**
@@ -376,7 +380,7 @@ const checkAll = ref<boolean>(false);
  * 全选复选框的change事件
  */
 const handleCheckAllChange = (val: boolean) => {
-  checkedRoles.value = val ? RoleList : [];
+  userRole.value = val ? allRole.value : [];
   isIndeterminate.value = false;
 };
 
@@ -385,8 +389,9 @@ const handleCheckAllChange = (val: boolean) => {
  */
 const handleCheckedRolesChange = (value: string[]) => {
   const checkedCount = value.length;
-  checkAll.value = checkedCount === RoleList.length;
-  isIndeterminate.value = checkedCount > 0 && checkedCount < RoleList.length;
+  checkAll.value = checkedCount === userRole.value.length;
+  isIndeterminate.value =
+    checkedCount > 0 && checkedCount < allRole.value.length;
 };
 
 /**
@@ -394,6 +399,28 @@ const handleCheckedRolesChange = (value: string[]) => {
  */
 const closeDrawer2 = () => {
   drawer2.value = false;
+};
+
+/**
+ * 分配职位
+ */
+const confirmClick = async () => {
+  let data: SetRoleData = {
+    roleIdList: userRole.value.map((item) => {
+      return item.id;
+    }),
+    userId: userParams.id as number,
+  };
+  const result = await reqSetRole(data);
+  console.log(result);
+  if (result.code === 200) {
+    ElMessage({
+      type: "success",
+      message: "分配职务成功",
+    });
+    drawer2.value = false;
+    getAllUserData(pageNo.value);
+  }
 };
 </script>
 
